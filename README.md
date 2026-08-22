@@ -1,3 +1,28 @@
+# 👋 Welcome to My Portfolio
+
+Hi! I am an engineering student and developer passionate about building Python, IoT, and AI-driven applications. Here you can find my core technical projects.
+
+## 🚀 Featured AI & Python Projects
+
+- **[🎵 AI-Music-Generator](./AI-Music-Generator)**: Generates custom audio tracks from text prompts using Hugging Face Transformers.
+- **[🤖 Smart-FAQ-Chatbot](./Smart-FAQ-Chatbot)**: An automated chatbot designed to answer user inquiries efficiently.
+- **[🌍 Language-Translator-Tool](./Language-Translator-Tool)**: A tool for smooth text translation across multiple languages.
+
+---
+
+## 🔌 IoT & Hardware Projects
+
+*(Yahan aapka purana PIR Motion Detection system wala code ya heading rahegi)*
+- **PIR Motion Detection System**: Developed using an Arduino Uno and a PIR sensor... *(jo bhi wahan pehle se likha tha, use waisa hi rehne do)*
+
+---
+
+## 🛠️ Tech Stack & Skills
+- **Languages:** Python, C++ (Arduino)
+- **Frameworks & Libraries:** PyTorch, Hugging Face
+- **Tools:** Git, GitHub, VS Code, Arduino IDE
+-
+
 # PIR Motion Detection System
 
 ## Project Overview
