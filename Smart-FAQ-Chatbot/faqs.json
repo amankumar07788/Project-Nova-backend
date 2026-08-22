@@ -1,0 +1,34 @@
+[
+    {
+        "question": "What is artificial intelligence?",
+        "answer": "Artificial Intelligence is a technology that enables computers to perform tasks that normally require human intelligence."
+    },
+    {
+        "question": "What is machine learning?",
+        "answer": "Machine Learning is a branch of Artificial Intelligence that allows computers to learn patterns from data."
+    },
+    {
+        "question": "What is the internship duration?",
+        "answer": "The internship duration is 4 weeks."
+    },
+    {
+        "question": "How can I submit my project?",
+        "answer": "You can submit your completed project through the internship submission form."
+    },
+    {
+        "question": "How can I contact support?",
+        "answer": "You can contact support through the official support email."
+    },
+    {
+        "question": "What technologies are used in this project?",
+        "answer": "This project uses Python, Natural Language Processing, TF-IDF and cosine similarity."
+    },
+    {
+        "question": "What is NLP?",
+        "answer": "NLP stands for Natural Language Processing. It helps computers understand and process human language."
+    },
+    {
+        "question": "What is Python?",
+        "answer": "Python is a popular programming language widely used for Artificial Intelligence, Machine Learning and software development."
+    }
+]
