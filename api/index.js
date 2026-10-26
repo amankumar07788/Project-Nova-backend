@@ -1,23 +1,65 @@
 ```javascript
 const express = require("express");
 const cors = require("cors");
-const { connectDB, Project } = require("../db.cjs");
+const mongoose = require("mongoose");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Middleware to ensure Database Connection on every request
+// Fallback MongoDB connection string if MONGODB_URI is not set in Vercel environment variables
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb+srv://amankumar07788:Aman%402004@cluster0.bquvg.mongodb.net/projectnova?retryWrites=true&w=majority";
+
+// Cached connection helper for Vercel Serverless
+let isConnected = false;
+
+async function connectToDatabase() {
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return;
+  }
+
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+    });
+    isConnected = true;
+    console.log("Successfully connected to MongoDB Atlas");
+  } catch (error) {
+    console.error("MongoDB Connection Error:", error);
+    throw error;
+  }
+}
+
+// Define Mongoose Schema & Model safely
+const projectSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    category: { type: String, required: true },
+    techStack: { type: [String], default: [] },
+    githubUrl: { type: String, required: true },
+    demo: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
+
+const Project =
+  mongoose.models.Project || mongoose.model("Project", projectSchema);
+
+// Middleware to establish DB Connection on each serverless invocation
 app.use(async (req, res, next) => {
   try {
-    await connectDB();
+    await connectToDatabase();
     next();
   } catch (error) {
-    console.error("Database connection error in Vercel function:", error);
-    res.status(500).json({
+    console.error("Database connection middleware failed:", error);
+    return res.status(500).json({
       success: false,
       message: "Database connection failed",
+      error: error.message,
     });
   }
 });
@@ -30,7 +72,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// GET /api/projects - Retrieve all saved projects
+// GET /api/projects - Fetch all projects
 app.get("/api/projects", async (req, res) => {
   try {
     const projects = await Project.find().sort({ createdAt: -1 });
