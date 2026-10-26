@@ -2,21 +2,12 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-const dns = require("dns");
-
-// Force public DNS resolvers to prevent Vercel SRV lookup failures
-try {
-  dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch (e) {
-  console.log("DNS setServers skipped:", e.message);
-}
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// MongoDB connection string with direct fallback
 const MONGODB_URI =
   process.env.MONGODB_URI ||
   "mongodb+srv://amankumar07788:Aman%402004@cluster0.bquvg.mongodb.net/projectnova?retryWrites=true&w=majority";
@@ -31,7 +22,7 @@ async function connectToDatabase() {
   try {
     await mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
     });
     isConnected = true;
     console.log("Successfully connected to MongoDB Atlas");
@@ -41,7 +32,6 @@ async function connectToDatabase() {
   }
 }
 
-// Define Mongoose Schema & Model safely
 const projectSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
@@ -57,7 +47,6 @@ const projectSchema = new mongoose.Schema(
 const Project =
   mongoose.models.Project || mongoose.model("Project", projectSchema);
 
-// Middleware to establish DB Connection on each serverless invocation
 app.use(async (req, res, next) => {
   try {
     await connectToDatabase();
@@ -72,7 +61,6 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
@@ -80,7 +68,6 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// GET /api/projects - Fetch all projects
 app.get("/api/projects", async (req, res) => {
   try {
     const projects = await Project.find().sort({ createdAt: -1 });
@@ -97,7 +84,6 @@ app.get("/api/projects", async (req, res) => {
   }
 });
 
-// POST /api/projects - Save a new project
 app.post("/api/projects", async (req, res) => {
   try {
     const { title, description, category, techStack, githubUrl, demo } = req.body;
