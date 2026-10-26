@@ -2,18 +2,25 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const dns = require("dns");
+
+// Force public DNS resolvers to prevent Vercel SRV lookup failures
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+  console.log("DNS setServers skipped:", e.message);
+}
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Fallback MongoDB connection string if MONGODB_URI is not set in Vercel environment variables
+// MongoDB connection string with direct fallback
 const MONGODB_URI =
   process.env.MONGODB_URI ||
   "mongodb+srv://amankumar07788:Aman%402004@cluster0.bquvg.mongodb.net/projectnova?retryWrites=true&w=majority";
 
-// Cached connection helper for Vercel Serverless
 let isConnected = false;
 
 async function connectToDatabase() {
@@ -24,6 +31,7 @@ async function connectToDatabase() {
   try {
     await mongoose.connect(MONGODB_URI, {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
     });
     isConnected = true;
     console.log("Successfully connected to MongoDB Atlas");
