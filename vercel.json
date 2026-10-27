@@ -7,7 +7,10 @@
 },
 {
 "src": "package.json",
-"use": "@vercel/static-build"
+"use": "@vercel/static-build",
+"config": {
+"distDir": "dist"
+}
 }
 ],
 "routes": [
@@ -16,11 +19,7 @@
 "dest": "/api/index.js"
 },
 {
-"src": "/assets/(.)",
-"dest": "/assets/$1"
-},
-{
-"src": "/(.*)",
+"src": "/(.)",
 "dest": "/index.html"
 }
 ]
