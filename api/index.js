@@ -1,4 +1,3 @@
-```javascript
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -6,119 +5,207 @@ const mongoose = require("mongoose");
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://amankumar07788:Aman%402004@cluster0.bquvg.mongodb.net/projectnova?retryWrites=true&w=majority";
+// MongoDB Atlas connection
+const MONGODB_URI = process.env.MONGODB_URI;
 
-let isConnected = false;
-
-async function connectToDatabase() {
-  if (isConnected && mongoose.connection.readyState === 1) {
-    return;
-  }
-
-  try {
-    await mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 10000,
-    });
-    isConnected = true;
-    console.log("Successfully connected to MongoDB Atlas");
-  } catch (error) {
-    console.error("MongoDB Connection Error:", error);
-    throw error;
-  }
+if (!MONGODB_URI) {
+console.error("MONGODB_URI environment variable is missing.");
 }
 
+let cached = global.mongooseConnection;
+
+if (!cached) {
+cached = global.mongooseConnection = {
+conn: null,
+promise: null,
+};
+}
+
+async function connectToDatabase() {
+if (!MONGODB_URI) {
+throw new Error("MONGODB_URI is not configured in Vercel.");
+}
+
+if (cached.conn && mongoose.connection.readyState === 1) {
+return cached.conn;
+}
+
+if (!cached.promise) {
+cached.promise = mongoose
+.connect(MONGODB_URI, {
+serverSelectionTimeoutMS: 10000,
+})
+.then((mongooseInstance) => mongooseInstance)
+.catch((error) => {
+cached.promise = null;
+throw error;
+});
+}
+
+cached.conn = await cached.promise;
+return cached.conn;
+}
+
+// Project schema
 const projectSchema = new mongoose.Schema(
-  {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    category: { type: String, required: true },
-    techStack: { type: [String], default: [] },
-    githubUrl: { type: String, required: true },
-    demo: { type: String, default: "" },
-  },
-  { timestamps: true }
+{
+title: {
+type: String,
+required: true,
+trim: true,
+},
+description: {
+type: String,
+required: true,
+trim: true,
+},
+category: {
+type: String,
+required: true,
+trim: true,
+},
+techStack: {
+type: [String],
+default: [],
+},
+githubUrl: {
+type: String,
+required: true,
+trim: true,
+},
+demo: {
+type: String,
+default: "",
+},
+},
+{
+timestamps: true,
+}
 );
 
 const Project =
-  mongoose.models.Project || mongoose.model("Project", projectSchema);
+mongoose.models.Project ||
+mongoose.model("Project", projectSchema);
 
-app.use(async (req, res, next) => {
-  try {
-    await connectToDatabase();
-    next();
-  } catch (error) {
-    console.error("Database connection middleware failed:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Database connection failed",
-      error: error.message,
-    });
-  }
+// Health check: verifies API and database
+app.get("/api/health", async (req, res) => {
+try {
+await connectToDatabase();
+
+return res.status(200).json({
+  success: true,
+  status: "ok",
+  database: "connected",
+  message: "ProjectNova backend and MongoDB are running.",
 });
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "ProjectNova backend is running with MongoDB!",
-  });
+} catch (error) {
+console.error("Health check failed:", error.message);
+
+return res.status(503).json({
+  success: false,
+  status: "error",
+  message: "Database connection failed.",
 });
 
+}
+});
+
+// GET: All projects
 app.get("/api/projects", async (req, res) => {
-  try {
-    const projects = await Project.find().sort({ createdAt: -1 });
-    res.json({
-      success: true,
-      projects,
-    });
-  } catch (error) {
-    console.error("Error fetching projects:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch projects from database",
-    });
-  }
+try {
+await connectToDatabase();
+
+const projects = await Project.find({})
+  .sort({ createdAt: -1 })
+  .lean();
+
+return res.status(200).json({
+  success: true,
+  count: projects.length,
+  projects,
 });
 
+} catch (error) {
+console.error("Fetch projects failed:", error.message);
+
+return res.status(500).json({
+  success: false,
+  message: "Failed to fetch projects.",
+});
+
+}
+});
+
+// POST: Create a project
 app.post("/api/projects", async (req, res) => {
-  try {
-    const { title, description, category, techStack, githubUrl, demo } = req.body;
+try {
+await connectToDatabase();
 
-    if (!title || !description || !category || !techStack || !githubUrl) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required project fields",
-      });
-    }
+const {
+  title,
+  description,
+  category,
+  techStack,
+  githubUrl,
+  demo,
+} = req.body || {};
 
-    const newProject = new Project({
-      title,
-      description,
-      category,
-      techStack,
-      githubUrl,
-      demo: demo || "",
-    });
+if (
+  typeof title !== "string" ||
+  !title.trim() ||
+  typeof description !== "string" ||
+  !description.trim() ||
+  typeof category !== "string" ||
+  !category.trim() ||
+  typeof githubUrl !== "string" ||
+  !githubUrl.trim()
+) {
+  return res.status(400).json({
+    success: false,
+    message:
+      "Title, description, category and githubUrl are required.",
+  });
+}
 
-    const saved = await newProject.save();
+if (
+  techStack !== undefined &&
+  (!Array.isArray(techStack) ||
+    !techStack.every((item) => typeof item === "string"))
+) {
+  return res.status(400).json({
+    success: false,
+    message: "techStack must be an array of strings.",
+  });
+}
 
-    res.status(201).json({
-      success: true,
-      message: "Project saved successfully",
-      projectId: saved._id,
-    });
-  } catch (error) {
-    console.error("Error creating project:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to save project to database",
-    });
-  }
+const project = await Project.create({
+  title: title.trim(),
+  description: description.trim(),
+  category: category.trim(),
+  techStack: techStack || [],
+  githubUrl: githubUrl.trim(),
+  demo: typeof demo === "string" ? demo.trim() : "",
 });
 
+return res.status(201).json({
+  success: true,
+  message: "Project saved successfully.",
+  project,
+});
+
+} catch (error) {
+console.error("Create project failed:", error.message);
+
+return res.status(500).json({
+  success: false,
+  message: "Failed to save project.",
+});
+
+}
+});
+
+// Export Express app for Vercel
 module.exports = app;
-```
