@@ -3,16 +3,28 @@ const cors = require("cors");
 const { connectDB, getDB } = require("./db.cjs");
 const admin = require("firebase-admin");
 
-// Initialize Firebase Admin using environment variable
-if (!admin.apps.length && process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
-    });
-    console.log("Firebase Admin initialized successfully");
-  } catch (error) {
-    console.error("Firebase initialization error:", error.message);
+// Safe Firebase Initialization
+try {
+  // Check if admin is imported and apps array exists
+  if (admin && admin.apps && !admin.apps.length) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      let serviceAccount;
+      try {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      } catch (e) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.trim());
+      }
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log("Firebase Admin initialized successfully");
+    } else {
+      console.warn("WARNING: FIREBASE_SERVICE_ACCOUNT environment variable is missing!");
+    }
   }
+} catch (error) {
+  console.error("Firebase initialization error:", error.message);
 }
 
 const app = express();
@@ -141,7 +153,7 @@ app.post("/api/projects", async (req, res) => {
   }
 });
 
-// Start the server with 0.0.0.0 and correct template literal backticks
+// Start the server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`ProjectNova server running on port ${PORT}`);
 });
