@@ -14,7 +14,12 @@ try {
 
     if (serviceAccountJSON) {
       let serviceAccount;
-      const rawEnv = serviceAccountJSON.trim();
+      let rawEnv = serviceAccountJSON.trim();
+
+      // Remove leading/trailing quotes if accidentally pasted in Render
+      if ((rawEnv.startsWith('"') && rawEnv.endsWith('"')) || (rawEnv.startsWith("'") && rawEnv.endsWith("'"))) {
+        rawEnv = rawEnv.slice(1, -1);
+      }
 
       try {
         serviceAccount = JSON.parse(rawEnv);
@@ -22,11 +27,23 @@ try {
         serviceAccount = JSON.parse(rawEnv.replace(/\\n/g, "\n"));
       }
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+      // Fix private key newlines if stored as literal \n
+      if (serviceAccount && serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+      }
 
-      console.log("Firebase Admin initialized successfully");
+      // Safe initialization using optional chaining
+      if (admin && admin.credential && typeof admin.credential.cert === "function") {
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        console.log("Firebase Admin initialized successfully");
+      } else {
+        admin.initializeApp({
+          credential: admin?.credential?.cert ? admin.credential.cert(serviceAccount) : undefined,
+        });
+        console.log("Firebase Admin initialized with fallback");
+      }
     } else {
       console.error(
         "FIREBASE_SERVICE_ACCOUNT is missing. Protected routes will be unavailable."
@@ -198,7 +215,6 @@ app.post("/api/projects", requireFirebaseAuth, async (req, res) => {
           ? category.trim()
           : "Other",
 
-      // Firebase UID of the authenticated user
       userId: req.user.uid,
 
       createdAt: new Date(),
