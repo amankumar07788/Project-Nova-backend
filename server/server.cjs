@@ -6,10 +6,10 @@ const admin = require("firebase-admin");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ---------------- Firebase Admin Initialization ----------------
+// ---------------- Firebase Admin Initialization (Ultra-Safe) ----------------
 
 try {
-  if (!admin.apps.length) {
+  if (!admin?.apps?.length) {
     const serviceAccountJSON = process.env.FIREBASE_SERVICE_ACCOUNT;
 
     if (serviceAccountJSON) {
@@ -19,7 +19,7 @@ try {
       try {
         serviceAccount = JSON.parse(rawEnv);
       } catch (err1) {
-        serviceAccount = JSON.parse(JSON.parse(JSON.stringify(rawEnv)));
+        serviceAccount = JSON.parse(rawEnv.replace(/\\n/g, "\n"));
       }
 
       admin.initializeApp({
@@ -53,7 +53,7 @@ app.use(express.json({ limit: "1mb" }));
 
 async function requireFirebaseAuth(req, res, next) {
   try {
-    if (!admin.apps.length) {
+    if (!admin?.apps?.length) {
       return res.status(503).json({
         success: false,
         message: "Authentication service is not configured",
@@ -105,7 +105,7 @@ app.get("/api/health", async (req, res) => {
       success: true,
       status: "OK",
       database: "connected",
-      firebaseAdmin: admin.apps.length
+      firebaseAdmin: admin?.apps?.length
         ? "initialized"
         : "not_configured",
       message: "ProjectNova backend is running",
