@@ -266,3 +266,120 @@ footer { text-align: center; padding: 28px; border-top: 1px solid #242724; color
     margin-right: 5%;
   }
 }
+/* ProjectNova Login Page */
+.login-page {
+min-height: 100vh;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 24px;
+background: linear-gradient(135deg, #020617, #172554, #312e81);
+color: #f8fafc;
+font-family: Arial, sans-serif;
+}
+
+.login-card {
+width: 100%;
+max-width: 420px;
+padding: 32px;
+border: 1px solid #334155;
+border-radius: 20px;
+background: rgba(15, 23, 42, 0.96);
+box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.login-card h1 {
+margin: 0 0 28px;
+text-align: center;
+font-size: 32px;
+font-weight: 800;
+}
+
+.login-card h1 span {
+color: #818cf8;
+}
+
+.login-card h2 {
+margin-bottom: 8px;
+text-align: center;
+font-size: 25px;
+}
+
+.login-card > p {
+color: #cbd5e1;
+text-align: center;
+}
+
+.login-card form {
+display: flex;
+flex-direction: column;
+gap: 10px;
+margin-top: 24px;
+}
+
+.login-card label {
+font-size: 14px;
+color: #e2e8f0;
+}
+
+.login-card input {
+width: 100%;
+box-sizing: border-box;
+padding: 13px;
+border: 1px solid #475569;
+border-radius: 9px;
+outline: none;
+background: #0f172a;
+color: white;
+}
+
+.login-card input:focus {
+border-color: #818cf8;
+}
+
+.login-card form button,
+.google-login {
+width: 100%;
+padding: 13px;
+margin-top: 10px;
+border: none;
+border-radius: 9px;
+background: #6366f1;
+color: white;
+font-weight: 700;
+cursor: pointer;
+}
+
+.google-login {
+margin-top: 0;
+background: white;
+color: #1e293b;
+}
+
+.login-card button:disabled {
+opacity: 0.6;
+cursor: not-allowed;
+}
+
+.login-divider {
+margin: 20px 0;
+text-align: center;
+color: #94a3b8;
+}
+
+.switch-mode {
+display: block;
+width: 100%;
+margin-top: 18px;
+padding: 10px;
+border: none;
+background: transparent;
+color: #a5b4fc;
+cursor: pointer;
+}
+
+.login-message {
+overflow-wrap: anywhere;
+color: #fca5a5 !important;
+font-size: 14px;
+}

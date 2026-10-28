@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "./firebase";
 import "./App.css";
+import Login from "./Login";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api/projects`;
+const API_URL = "https://project-nova-backend-3.onrender.com/api/projects";
 
 const initialProjects = [
   {
@@ -94,6 +97,9 @@ function normalizeProject(project) {
 }
 
 export default function App() {
+  const [showLogin, setShowLogin] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
   const [projects, setProjects] = useState(initialProjects);
   const [search, setSearch] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
@@ -112,7 +118,16 @@ export default function App() {
     demo: "",
   });
 
-  // MongoDB se saved projects load karo.
+  // Firebase login state check
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // MongoDB se projects load karo
   async function loadProjects() {
     try {
       const response = await fetch(API_URL);
@@ -129,11 +144,7 @@ export default function App() {
 
       const savedProjects = data.projects.map(normalizeProject);
 
-      setProjects([
-        ...savedProjects,
-        ...initialProjects,
-      ]);
-
+      setProjects([...savedProjects, ...initialProjects]);
       setApiConnected(true);
     } catch (error) {
       console.error("Load projects error:", error);
@@ -150,12 +161,14 @@ export default function App() {
     loadProjects();
   }, []);
 
+  // Search projects
   const filtered = projects.filter((project) =>
     `${project.name} ${project.category} ${project.tech.join(" ")}`
       .toLowerCase()
       .includes(search.toLowerCase())
   );
 
+  // Form input update
   function updateForm(event) {
     const { name, value } = event.target;
 
@@ -165,7 +178,7 @@ export default function App() {
     }));
   }
 
-  // Project ko backend ke through MongoDB mein save karo.
+  // Project MongoDB mein save karo
   async function submitProject(event) {
     event.preventDefault();
 
@@ -189,22 +202,35 @@ export default function App() {
     setSaving(true);
     setMessage("");
 
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newProject),
-      });
+   try {
+  // Firebase ID token lo
+  const idToken = await auth.currentUser?.getIdToken();
 
-      const data = await response.json();
+  if (!idToken) {
+    throw new Error("Project submit karne ke liye login karo.");
+  }
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Project save nahi ho paaya."
-        );
-      }
+  // Firebase token ke saath backend ko request bhejo
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(newProject),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(
+      data.message || "Project save nahi ho paaya."
+    );
+  }
+
+  // Iske neeche tumhara existing success code rehne do.
+
+  
 
       const savedProject = normalizeProject({
         ...newProject,
@@ -224,7 +250,9 @@ export default function App() {
       setShowForm(false);
       setSelectedProject(savedProject);
       setApiConnected(true);
-      setMessage("Project successfully MongoDB mein save ho gaya! 🎉");
+      setMessage(
+        "Project successfully MongoDB mein save ho gaya! 🎉"
+      );
 
       setForm({
         name: "",
@@ -250,23 +278,45 @@ export default function App() {
     }
   }
 
-  function openSubmitForm() {
-    setSelectedProject(null);
-    setMessage("");
-    setShowForm(true);
+  // Project form open karo
+ function openSubmitForm() {
+if (!currentUser) {
+setMessage("Project submit karne ke liye pehle Login karo.");
+setShowLogin(true);
+return;
+}
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
+setSelectedProject(null);
+setMessage("");
+setShowForm(true);
 
+window.scrollTo({
+top: 0,
+behavior: "smooth",
+});
+}
+
+  // Explore page par wapas jao
   function goToExplore() {
     setSelectedProject(null);
     setShowForm(false);
     setMessage("");
   }
 
+  // Login page
+  if (showLogin) {
+    return (
+      <Login
+        onLogin={(user) => {
+          setCurrentUser(user);
+          setShowLogin(false);
+          setMessage("Login successful! Welcome to ProjectNova.");
+        }}
+      />
+    );
+  }
+
+  // Main website
   return (
     <div className="app">
       <nav className="navbar">
@@ -290,16 +340,41 @@ export default function App() {
             About
           </a>
 
-          <button
-            className="login-btn"
-            onClick={() =>
-              alert(
-                "Login and account creation will be added in a future step."
-              )
-            }
-          >
-            Login
-          </button>
+          {currentUser ? (
+            <>
+              <span className="user-email">
+                {currentUser.displayName || currentUser.email}
+              </span>
+
+              <button
+                type="button"
+                className="login-btn"
+                onClick={async () => {
+                  try {
+                    await signOut(auth);
+                    setCurrentUser(null);
+                    setMessage("You have logged out successfully.");
+                  } catch (error) {
+                    console.error("Logout error:", error);
+                    setMessage("Logout failed. Please try again.");
+                  }
+                }}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="login-btn"
+              onClick={() => {
+                setMessage("");
+                setShowLogin(true);
+              }}
+            >
+              Login
+            </button>
+          )}
         </div>
       </nav>
 
@@ -309,6 +384,7 @@ export default function App() {
             {message}
 
             <button
+              type="button"
               onClick={() => setMessage("")}
               aria-label="Dismiss message"
             >
