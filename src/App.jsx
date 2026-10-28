@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const API_URL = "/api/projects";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/projects`;
 
 const initialProjects = [
   {
