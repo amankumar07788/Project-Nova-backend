@@ -6,7 +6,7 @@ const admin = require("firebase-admin");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// ---------------- Firebase Admin Initialization (Ultra-Safe) ----------------
+// ---------------- Firebase Admin Initialization (Single JSON Variable) ----------------
 
 try {
   if (!admin?.apps?.length) {
@@ -16,7 +16,7 @@ try {
       let serviceAccount;
       let rawEnv = serviceAccountJSON.trim();
 
-      // Remove leading/trailing quotes if accidentally pasted in Render
+      // Remove leading/trailing quotes if present
       if ((rawEnv.startsWith('"') && rawEnv.endsWith('"')) || (rawEnv.startsWith("'") && rawEnv.endsWith("'"))) {
         rawEnv = rawEnv.slice(1, -1);
       }
@@ -27,23 +27,16 @@ try {
         serviceAccount = JSON.parse(rawEnv.replace(/\\n/g, "\n"));
       }
 
-      // Fix private key newlines if stored as literal \n
+      // Ensure private_key has proper newlines
       if (serviceAccount && serviceAccount.private_key) {
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
       }
 
-      // Safe initialization using optional chaining
-      if (admin && admin.credential && typeof admin.credential.cert === "function") {
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-        console.log("Firebase Admin initialized successfully");
-      } else {
-        admin.initializeApp({
-          credential: admin?.credential?.cert ? admin.credential.cert(serviceAccount) : undefined,
-        });
-        console.log("Firebase Admin initialized with fallback");
-      }
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+
+      console.log("Firebase Admin initialized successfully");
     } else {
       console.error(
         "FIREBASE_SERVICE_ACCOUNT is missing. Protected routes will be unavailable."
