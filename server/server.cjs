@@ -13,7 +13,14 @@ try {
     const serviceAccountJSON = process.env.FIREBASE_SERVICE_ACCOUNT;
 
     if (serviceAccountJSON) {
-      const serviceAccount = JSON.parse(serviceAccountJSON);
+      let serviceAccount;
+      const rawEnv = serviceAccountJSON.trim();
+
+      try {
+        serviceAccount = JSON.parse(rawEnv);
+      } catch (err1) {
+        serviceAccount = JSON.parse(JSON.parse(JSON.stringify(rawEnv)));
+      }
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
